@@ -11,6 +11,7 @@ set(Module_SRCS
   vtkRungeKutta45.cxx
 
   # Header only classes
+  vtkDualQuaternion.h
   vtkQuaternion.h
   vtkTuple.h
   )
@@ -22,12 +23,14 @@ if(NOT VTK_LEGACY_REMOVE)
 endif()
 
 set_source_files_properties(
+  vtkDualQuaternion
   vtkQuaternion
   vtkTuple
   WRAP_EXCLUDE
   )
 
 set_source_files_properties(
+  vtkDualQuaternion.h
   vtkQuaternion.h
   vtkTuple.h
   PROPERTIES WRAP_SPECIAL 1
@@ -35,6 +38,7 @@ set_source_files_properties(
 
 set(
   ${vtk-module}_HDRS
+  vtkDualQuaternion.txx
   vtkQuaternion.txx
   )
 
