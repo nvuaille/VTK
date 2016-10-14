@@ -18,6 +18,7 @@
 #include "vtkTextProperty.h"
 #include "vtkObjectFactory.h"
 #include "vtkMath.h"
+#include "vtkMutexLock.h"
 #include "vtkNew.h"
 #include "vtkPath.h"
 #include "vtkImageData.h"
@@ -115,6 +116,7 @@ public:
 // The singleton, and the singleton cleanup
 vtkFreeTypeTools* vtkFreeTypeTools::Instance = NULL;
 vtkFreeTypeToolsCleanup vtkFreeTypeTools::Cleanup;
+vtkMutexLock* vtkFreeTypeTools::Mutex = NULL;
 
 //----------------------------------------------------------------------------
 // The embedded fonts
@@ -168,12 +170,14 @@ vtkFreeTypeTools* vtkFreeTypeTools::GetInstance()
 {
   if (!vtkFreeTypeTools::Instance)
     {
-    vtkFreeTypeTools::Instance = static_cast<vtkFreeTypeTools *>(
+    vtkFreeTypeTools * instance = static_cast<vtkFreeTypeTools *>(
       vtkObjectFactory::CreateInstance("vtkFreeTypeTools"));
-    if (!vtkFreeTypeTools::Instance)
+    if (!instance)
       {
-      vtkFreeTypeTools::Instance = new vtkFreeTypeTools;
+      instance = new vtkFreeTypeTools;
       }
+    SetInstance(instance);
+    instance->Delete();
     }
   return vtkFreeTypeTools::Instance;
 }
@@ -198,6 +202,15 @@ void vtkFreeTypeTools::SetInstance(vtkFreeTypeTools* instance)
   if (instance)
     {
     instance->Register(NULL);
+    if (vtkFreeTypeTools::Mutex == NULL)
+      {
+      vtkFreeTypeTools::Mutex = vtkMutexLock::New();
+      }
+    }
+  else if (vtkFreeTypeTools::Mutex != NULL)
+    {
+    vtkFreeTypeTools::Mutex->Delete();
+    vtkFreeTypeTools::Mutex = NULL;
     }
 }
 
@@ -796,9 +809,16 @@ bool vtkFreeTypeTools::GetGlyphIndex(unsigned long tprop_cache_id,
   // Map the id of a text property in the cache to a FTC_FaceID
   FTC_FaceID face_id = reinterpret_cast<FTC_FaceID>(tprop_cache_id);
 
+  if (vtkFreeTypeTools::Mutex)
+  {
+    vtkFreeTypeTools::Mutex->Lock();
+  }
   // Lookup the glyph index
   *gindex = FTC_CMapCache_Lookup(*cmap_cache, face_id, 0, c);
-
+  if (vtkFreeTypeTools::Mutex)
+  {
+    vtkFreeTypeTools::Mutex->Unlock();
+  }
   return *gindex ? true : false;
 }
 
@@ -863,9 +883,16 @@ bool vtkFreeTypeTools::GetGlyph(unsigned long tprop_cache_id,
     }
 
   // Lookup the glyph
+  if (vtkFreeTypeTools::Mutex)
+  {
+    vtkFreeTypeTools::Mutex->Lock();
+  }
   FT_Error error = FTC_ImageCache_Lookup(
     *image_cache, &image_type_rec, gindex, glyph, NULL);
-
+  if (vtkFreeTypeTools::Mutex)
+  {
+    vtkFreeTypeTools::Mutex->Unlock();
+  }
   return error ? false : true;
 }
 
