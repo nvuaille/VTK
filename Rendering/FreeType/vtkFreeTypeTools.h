@@ -28,6 +28,7 @@
 #include "vtkTextRenderer.h" // For Metrics struct
 
 class vtkImageData;
+class vtkMutexLock;
 class vtkPath;
 class vtkTextProperty;
 class vtkStdString;
@@ -290,6 +291,7 @@ protected:
   // The singleton instance and the singleton cleanup instance
   static vtkFreeTypeTools* Instance;
   static vtkFreeTypeToolsCleanup Cleanup;
+  static vtkMutexLock* Mutex;
 
   // Description:
   // Lookup table that maps free type font cache face ids to vtkTextProperties
