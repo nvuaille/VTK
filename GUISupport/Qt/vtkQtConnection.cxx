@@ -38,6 +38,10 @@ vtkQtConnection::vtkQtConnection(vtkEventQtSlotConnect* owner)
   this->Callback = vtkCallbackCommand::New();
   this->Callback->SetCallback(vtkQtConnection::DoCallback);
   this->Callback->SetClientData(this);
+  this->DeleteCallback = vtkCallbackCommand::New();
+  this->DeleteCallback->SetCallback(vtkQtConnection::DoCallback);
+  this->DeleteCallback->SetClientData(this);
+  this->DeleteCallback->PassiveObserverOn();
   this->VTKObject = 0;
   this->QtObject = 0;
   this->ClientData = 0;
@@ -50,9 +54,11 @@ vtkQtConnection::~vtkQtConnection()
   if(this->VTKObject)
   {
     this->VTKObject->RemoveObserver(this->Callback);
+    this->VTKObject->RemoveObserver(this->DeleteCallback);
     //Qt takes care of disconnecting slots
   }
   this->Callback->Delete();
+  this->DeleteCallback->Delete();
 }
 
 void vtkQtConnection::DoCallback(vtkObject* vtk_obj, unsigned long event,
@@ -66,10 +72,13 @@ void vtkQtConnection::DoCallback(vtkObject* vtk_obj, unsigned long event,
 // callback from VTK to emit signal
 void vtkQtConnection::Execute(vtkObject* caller, unsigned long e, void* call_data)
 {
-  if(e != vtkCommand::DeleteEvent ||
-     (this->VTKEvent == vtkCommand::DeleteEvent))
+  if(e != vtkCommand::DeleteEvent)
   {
     emit EmitExecute(caller, e, ClientData, call_data, this->Callback);
+  }
+  else if(this->VTKEvent == vtkCommand::DeleteEvent)
+  {
+    emit EmitExecute(caller, e, ClientData, call_data, this->DeleteCallback);
   }
 
   if(e == vtkCommand::DeleteEvent)
@@ -116,11 +125,12 @@ void vtkQtConnection::SetConnection(
   this->QtSlot = slot;
 
   // make a connection between this and the vtk object
-  vtk_obj->AddObserver(e, this->Callback, priority);
+  float deletePriority = e == vtkCommand::DeleteEvent ? priority : 0.0f;
+  vtk_obj->AddObserver(vtkCommand::DeleteEvent, this->DeleteCallback, deletePriority);
 
   if(e != vtkCommand::DeleteEvent)
   {
-    vtk_obj->AddObserver(vtkCommand::DeleteEvent, this->Callback);
+    vtk_obj->AddObserver(e, this->Callback, priority);
   }
 
   // make a connection between this and the Qt object

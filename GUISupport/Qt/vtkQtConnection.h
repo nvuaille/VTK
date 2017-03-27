@@ -85,6 +85,7 @@ class vtkQtConnection : public QObject
     // the connection information
     vtkObject* VTKObject;
     vtkCallbackCommand* Callback;
+    vtkCallbackCommand* DeleteCallback;
     const QObject* QtObject;
     void* ClientData;
     unsigned long VTKEvent;
