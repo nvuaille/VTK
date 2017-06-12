@@ -1657,6 +1657,8 @@ void vtkDualDepthPeelingPass::Finalize()
     }
   }
 
+  glEnable(GL_DEPTH_TEST);
+
   this->RenderState = nullptr;
   this->DeleteOcclusionQueryIds();
   this->SetCurrentStage(Inactive);
